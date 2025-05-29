@@ -1,1038 +1,117 @@
-import React, { useState, useEffect, useCallback } from 'react';
-
-// Dados das raças e sub-raças baseados no PDF
-const racesData = {
-  "Anões": {
-    description: "Os bravos e corajosos anões são uma raça antiga, descendida de seres elementais feitos de rocha viva, criados pelos titãs quando o mundo ainda era jovem.",
-    subraces: {
-      "Barbabronze": {
-        description: "O Clã Barbabronze é proeminente na região de Khaz Modan. Aliados dos humanos, são conhecidos por seu amor por preparativos de guerra e grandes histórias.",
-        traits: [
-          "Aumento no Valor de Atributo: Use as estatísticas dos anões da montanha do Player's Handbook.",
-          "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente. Inimigos da Aliança geralmente têm atitude inicial hostil."
-        ],
-        names: {
-          feminine: ["Brunnhild", "Fanny", "Fenella", "Grenda", "Helga", "Modgud", "Moira", "Mylra", "Nara", "Varda"],
-          masculine: ["Colin", "Coren", "Falstad", "Galgann", "Jarlath", "Khardros", "Madoran", "Magni", "Muradin", "Thaelin"],
-          surnames: ["Barbabronze", "Martelo Feroz", "Ferro Negro"]
-        },
-        attributeBonus: { constitution: 2, strength: 2 }
-      },
-      "Ferro Negro": {
-        description: "O Clã Ferro Negro serviu Ragnaros por muitos anos. Sua pele varia entre o pálido ao acinzentado, pelos brancos, negros ou alaranjados e olhos que brilham com uma chama laranja.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Inteligência aumenta em 1.",
-          "Explorador de Masmorras: Você ignora terreno difícil em lugares fechados.",
-          "Forjado nas Chamas: Você soma +1 em sua Classe de Armadura sempre que estiver usando uma armadura pesada."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { intelligence: 1, constitution: 2 }
-      },
-      "Martelo Feroz": {
-        description: "O Clã Martelo Feroz é notório por renunciar aparatos tecnológicos e favorecer um contato mais direto com a natureza pura. Conhecidos por seus caminhos xamanísticos e exímios cavaleiros de grifos.",
-        traits: [
-          "Aumento no Valor de Atributo: Use as estatísticas dos anões da colina do Player's Handbook."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { wisdom: 1, constitution: 2 }
-      }
-    }
-  },
-  "Draenei": {
-    description: "Seres altos, de pele azulada, com cascos, chifres e caudas, os draenei são seguidores dos Naarus e devotos da Luz Sagrada.",
-    traits: [
-      "Aumento no Valor de Atributo: Seu valor de Carisma aumenta em 2 e de Força em 1.",
-      "Idade: Envelhecem num ritmo muito mais lento que humanos, sendo potencialmente imortais.",
-      "Alinhamento: Tendência ao bem devido aos ensinamentos de Velen e Naarus.",
-      "Tamanho: Médio (entre 1,90m e 2,20m).",
-      "Deslocamento: 9 metros.",
-      "Visão no Escuro: Enxerga na penumbra a até 18 metros como luz plena, e no escuro como penumbra.",
-      "Dádiva dos Naaru: Conhece o truque Estabilizar. Pode conjurar Curar Ferimentos (3º nível como 1º círculo, 5º nível como 2º círculo) uma vez por descanso longo, usando Carisma.",
-      "Lapidários: Proficiência com ferramentas de joalheiro.",
-      "Proteção dos Naaru: Resistência ao dano necrótico.",
-      "Idiomas: Comum e Draenei.",
-      "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente. Inimigos da Aliança geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: ["Askara", "Baashia", "Gornii", "Iridi", "Ishanah", "Miihi", "Naielle", "Nambria", "Siaa", "Yrel"],
-      masculine: ["Aeus", "Akama", "Baleera", "Haagios", "Kadithuul", "Kavaan", "Maladaar", "Maraad", "Nabek", "Socrethar"],
-      surnames: ["Draenei não usam sobrenomes."]
-    },
-    attributeBonus: { charisma: 2, strength: 1 }
-  },
-  "Elfos": {
-    description: "Os Quel’Dorei, ou elfos, são uma das mais antigas raças nativas de Azeroth. Conhecidos por sua agilidade, sentidos aguçados e capacidade mágica.",
-    subraces: {
-      "Noturnos (Kaldorei)": {
-        description: "Abandonaram a civilização élfica após a Guerra dos Antigos e exilaram-se nas florestas, renunciando à magia arcana e tornando-se ligados às energias naturais do mundo.",
-        traits: [
-          "Aumento no Valor de Atributo: Use as estatísticas dos elfos silvestres do Player's Handbook.",
-          "Idiomas: Comum, Darnassiano e um idioma adicional (draenei, enânico, gnomo, pandaren, shalassiano, thalassiano ou ursino).",
-          "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente. Inimigos da Aliança geralmente têm atitude inicial hostil."
-        ],
-        names: {
-          feminine: ["Elyssa", "Elerethe", "Faeyrin", "Ferlynn", "Haidene", "Keldara", "Naisha", "Sarinei", "Saynna", "Ysiel"],
-          masculine: ["Bretander", "Caelyb", "Caynrus", "Darnall", "Fyldren", "Hammon", "Heralath", "Jarod", "Mardrack", "Oso"],
-          surnames: ["Aguazul", "Caelumbra", "Cantonegro", "Clamachuva", "Corenegro", "Friorvalho", "Grenhaluz", "Penarco", "Tirocerto", "Umbramata"]
-        },
-        attributeBonus: { dexterity: 2 }
-      },
-      "Sangrentos (Sin’dorei)": {
-        description: "Com a destruição de Quel’Thalas, a maioria adotou o nome de elfos sangrentos em memória ao sofrimento nas garras do Flagelo.",
-        traits: [
-          "Aumento no Valor de Atributo: Use as estatísticas dos altos elfos do Player's Handbook.",
-          "Idiomas: Órquico, Thalassiano e um idioma adicional (darnassiano, goblin, guturalês, nazja, pandaren, shalassiano, taur-ahe, vulpera ou zandáli).",
-          "Filiação: Horda. NPCs filiados à Horda geralmente têm atitude inicial indiferente (Renegados podem ser amigáveis). Inimigos da Horda geralmente têm atitude inicial hostil."
-        ],
-        names: {
-          feminine: ["Alanassori", "Anarial", "Azshara", "Driana", "Coria", "Freja", "Liadrin", "Melanion", "Salandria", "Valeera"],
-          masculine: ["Aethas", "Anandor", "Athaniar", "Belloc", "Eirtrill", "Halduron", "Malanior", "Mariel", "Tharama", "Viridiel", "Vorenthal"],
-          surnames: ["Andassol", "Asaluz", "Aurolume", "Correventos", "Fendessol", "Gumélion", "Jurassangue", "Sanguinar", "Solfúria", "Vigiassangue"]
-        },
-        attributeBonus: { intelligence: 1, dexterity: 2 }
-      },
-      "Filhos da Noite (Shal’dorei)": {
-        description: "Uma sociedade de elfos noturnos de Suramar que evoluiu sob um escudo mágico, aprimorando seu conhecimento mágico.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Carisma aumenta em 1.",
-          "Manipulação Shal’dorei: Conhece o truque mãos mágicas. Pode conjurar disco flutuante de Tenser (3º nível) e passo nebuloso (5º nível) uma vez por descanso longo, usando Carisma.",
-          "Idiomas: Órquico, Shalassiano e um idioma adicional (darnassiano, goblin, guturalês, pandaren, taur-ahe thalassiano, vulpera ou zandali).",
-          "Filiação: Horda. NPCs filiados à Horda geralmente têm atitude inicial indiferente (elfos sangrentos podem ser amigáveis). Inimigos da Horda geralmente têm atitude inicial hostil."
-        ],
-        names: {
-          feminine: ["Aluriel", "Arluelle", "Cyrille", "Elisande", "Ly’leth", "Margaux", "Sylessa", "Thalyssra", "Valtrois", "Victoire"],
-          masculine: ["Andaris", "Erasmus", "Etraeus", "Melandrus", "Oculeth", "Silgryn", "Tel’arn", "Thoramir", "Vandros", "Varkonis"],
-          surnames: ["Caelumbra", "Cantonegro", "Corenegro", "Folha-Prata", "Lamiluna", "Lunastre", "Narassin", "Or’ligai", "Penacanto", "Umbramata"]
-        },
-        attributeBonus: { charisma: 1, intelligence: 2 }
-      }
-    }
-  },
-  "Gnomos": {
-    description: "Excêntricos e brilhantes, os gnomos são tidos como uma das raças mais peculiares de Azeroth, com sua obsessão pela tecnologia e ímpeto por construir maravilhas de engenharia.",
-    traits: [
-      "Aumento no Valor de Atributo: Use as estatísticas da sub-raça dos gnomos das rochas do Player's Handbook.",
-      "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial indiferente (anões podem ser amigáveis). Inimigos da Aliança geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: ["Breani", "Brilda", "Indus", "Inzi", "Izza", "Kelsey", "Linzy", "Mindri", "Soolie", "Weeble"],
-      masculine: ["Biela", "Brink", "Erbag", "Finkle", "Linken", "Millhouse", "Sicco", "Silas", "Toshley", "Wilfred"],
-      surnames: ["Bantamflax", "Borbulhitas", "Fagulhante", "Fivelafuso", "Fuçafundo", "Latafuso", "Mekkatorque", "Termaplugue", "Tiragosto", "Velotroll"]
-    },
-    attributeBonus: { intelligence: 2, constitution: 1 }
-  },
-  "Goblins": {
-    description: "Os ardilosos goblins são criaturas pequenas e esverdeadas vindas da ilha de Kezan. Eles adoram dinheiro, explosivos e tecnologia — nesta ordem.",
-    traits: [
-      "Aumento no Valor de Atributo: Seu valor de Inteligência aumenta em 2 e de Destreza em 1.",
-      "Idade: Atingem a maioridade e envelhecem na mesma taxa que os humanos.",
-      "Alinhamento: Egoístas e gananciosos. A maioria é caótica e má.",
-      "Tamanho: Pequeno (entre 1,20m e 1,50m, pesando cerca de 30kg).",
-      "Deslocamento: 9 metros.",
-      "Visão no Escuro: Enxerga na penumbra a até 18 metros como luz plena, e no escuro como penumbra.",
-      "As Melhores Ofertas: Vantagem em testes de Carisma para barganhar (diminui 20% do preço de compra, aumenta 20% do lucro de venda).",
-      "Cinto-Foguete: Pode construir um cinto-foguete. Proficiente em ferramentas de funilaria para manuseá-lo.",
-      "Pela Ciência!: Proficiência com ferramentas de alquimista ou funileiro.",
-      "Idiomas: Comum, Órquico e Goblin.",
-      "Filiação: Neutra. NPCs geralmente têm atitude inicial indiferente."
-    ],
-    names: {
-      feminine: ["Aja", "Estela", "Giada", "Ginna", "Kixa", "Lasha", "Nessa", "Usúria", "Vizna", "Zelli"],
-      masculine: ["Beto", "Blazik", "Drix", "Gumex", "Haxxil", "Jasper", "Pinno", "Reni", "Wizak", "Zom"],
-      surnames: ["Batestaca", "Brilhagrana", "Chavenegra", "Cortafogo", "Estalagarra", "Estouraísca", "Farapuso", "Guardatraste", "Kabum", "Torceporca"]
-    },
-    attributeBonus: { intelligence: 2, dexterity: 1 }
-  },
-  "Humanos": {
-    description: "Os humanos estão dentre as raças mais jovens de Azeroth, mas compensam este fato com sua incrível capacidade de reprodução e disposição colonizadora.",
-    traits: [
-      "Aumento no Valor de Atributo: Use as estatísticas dos humanos do Player's Handbook (normal ou alternativo).",
-      "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente. Inimigos da Aliança geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: ["Alicia", "Alma", "Catherine", "Demisette", "Ilsa", "Isabel", "Laurena", "Tiffin", "Úrsula"],
-      masculine: ["Ander", "Angus", "Dungar", "Grayson", "Harlan", "Maginor", "Mathias", "Remington", "Timóteo"],
-      surnames: ["Bagley", "Fialho", "Germaine", "Leland", "Norde", "Quebrassombra", "Ridgewell", "Tragolongo", "Wollerton"]
-    },
-    attributeBonus: { strength: 1, dexterity: 1, constitution: 1, intelligence: 1, wisdom: 1, charisma: 1 }
-  },
-  "Meio-Elfos": {
-    description: "Meio-elfos são extremamente raros. Os elfos não são especialmente prolíficos e têm grande preconceito com aqueles que misturam-se com outras raças.",
-    traits: [
-      "Aumento no Valor de Atributo: Use as estatísticas dos meio-elfos do Player's Handbook.",
-      "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente. Inimigos da Aliança geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: [],
-      masculine: [],
-      surnames: []
-    },
-    attributeBonus: { choose: 2, fixed: { charisma: 2 } } // 'choose' indica que o utilizador escolhe 2 atributos para +1
-  },
-  "Meio-Orcs": {
-    description: "Meio-orcs enfrentam preconceitos piores que os meio-elfos. Azeroth é um lugar violento e cheio de tensões, e a mera presença de um meio-orc pode trazer o que há de pior dentro das pessoas.",
-    traits: [
-      "Aumento no Valor de Atributo: Use as estatísticas dos meio-orcs do Player's Handbook.",
-      "Filiação: Horda. NPCs filiados à Horda geralmente têm atitude inicial amigável ou indiferente. Inimigos da Horda geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: [],
-      masculine: [],
-      surnames: []
-    },
-    attributeBonus: { strength: 2, constitution: 1 }
-  },
-  "Orcs": {
-    description: "Orcs são humanóides grandes e embrutecidos, com uma compleição sempre muito musculosa, mesmo dentre os mais fracos da raça.",
-    subraces: {
-      "Maculados": {
-        description: "Descendentes dos orcs que beberam o sangue demoníaco e marcharam sob a bandeira da Legião Ardente. Sua pele nunca voltou ao tom marrom e lhes resta uma fúria do sangue corrompido.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Constituição aumenta em 1.",
-          "Ameaçador: Você adquire proficiência na perícia Intimidação.",
-          "Fúria Sangrenta: Uma vez por descanso curto ou longo, ao fazer o primeiro ataque no turno, pode ter vantagem nas jogadas de ataque com armas corpo a corpo usando Força. Ataques feitos contra você têm vantagem até o início do seu próximo turno."
-        ],
-        names: {
-          feminine: ["Acrypha", "Aggralan", "Draka", "Freiga", "Geyah", "Katoka", "Kaz", "Sergra", "Urna", "Zaela"],
-          masculine: ["Boktar", "Drek’thar", "Ga’nar", "Gakkorg", "Harkzog", "Karrath", "Kaz", "Kelgruk", "Markog", "Tharbek", "Vernak"],
-          surnames: ["Orcs usam o nome de seu clã ou epítetos no lugar de sobrenomes."]
-        },
-        attributeBonus: { strength: 2, constitution: 1 }
-      },
-      "Mag’har": {
-        description: "Orcs que nunca tiveram contato com o sangue demoníaco e foram exilados em Nagrand. São notórios por serem muito mais orgulhosos que os demais orcs.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Sabedoria aumenta em 1.",
-          "Caçador de Demônios: Você ganha proficiência em uma perícia (Arcanismo, Religião ou Sobrevivência).",
-          "Chamado Ancestral: Pode conjurar o truque Chamado Ancestral (Capítulo 6) uma vez por descanso longo ou curto, usando Sabedoria."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { strength: 2, wisdom: 1 }
-      }
-    }
-  },
-  "Pandaren": {
-    description: "Os enigmáticos pandaren formam uma das mais misteriosas raças de Azeroth. Ursos pandas humanóides, eles possuem um império próprio no continente de Pandária.",
-    traits: [
-      "Aumento no Valor de Atributo: Seu valor de Sabedoria aumenta em 2 e de Carisma em 1.",
-      "Idade: Atingem a maioridade por volta dos 80 anos e podem viver até 350 anos.",
-      "Alinhamento: A maioria é ordeira devido ao valor dado ao autocontrole.",
-      "Tamanho: Médio (pouco mais de 1,60m, podendo pesar 200 kg).",
-      "Deslocamento: 9 metros.",
-      "Proteção Natural: Soma +1 em sua Classe de Armadura sempre que não estiver usando armadura pesada.",
-      "Sabedoria Pandaren: Proficiente com a perícia Intuição. Pode usar modificador de Sabedoria no lugar de Destreza para Iniciativa.",
-      "Saltitante: Resistência a danos de queda.",
-      "Culinária Pandaren: Proficiente com suprimentos de cervejeiro e utensílios de cozinheiro.",
-      "Idiomas: Mogu e dois idiomas adicionais (pelo menos um deve ser Comum ou Órquico).",
-      "Filiação: Neutra. NPCs geralmente têm atitude inicial indiferente (aliados do Império Pandaren podem ser amistosos)."
-    ],
-    names: {
-      feminine: ["Ella", "Gosu", "Hilda", "Ju-Shan", "Lai", "Mah", "Mei", "Rin", "Sona", "Xuan", "Ying"],
-      masculine: ["Ahone", "Ban", "Doji", "Gu", "Kang", "Leven", "Tau", "Teng", "Vu", "Yum"],
-      surnames: ["Barriga Negra", "Barril de Maçãs", "Cajado Espinhoso", "Cenho Negro", "Cerveja de Fogo", "Coração de Urso", "Golpe da Nuvem", "Lâmina da Manhã", "Pata de Fogo", "Solo Negro"]
-    },
-    attributeBonus: { wisdom: 2, charisma: 1 }
-  },
-  "Tauren": {
-    description: "Os tauren são enormes humanóides bovinos que vivem nas grandes planícies de Azeroth. Um povo pacífico e honrado, mas guerreiros terríveis.",
-    subraces: {
-      "Shu’halo": {
-        description: "Tauren de Mulgore, notórios por seguirem o caminho da Mãe Terra, vivendo em comunhão com a natureza. Rejeitam magia arcana, mas abraçaram a engenharia.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Sabedoria aumenta em 1.",
-          "Ensinamentos da Mãe-Terra: Proficiência em Sobrevivência e Kit de Herbalismo.",
-          "Treinamento Tauren em Combate: Proficiência com alabardas, lanças, lanças longas e totens tauren."
-        ],
-        names: {
-          feminine: ["Aponi", "Aska", "Chezin", "Chuho", "Magatha", "Malaya", "Nala", "Siln", "Teve", "Teya"],
-          masculine: ["Atsoba", "Bovan", "Dezco", "Hamuul", "Jevan", "Muln", "Tagar", "Tahu", "Trag", "Xarantauro"],
-          surnames: ["Taunka e Yaungol não usam sobrenome. Shu’halo às vezes usam nomes de suas tribos."]
-        },
-        attributeBonus: { strength: 2, wisdom: 1 }
-      },
-      "Taunka": {
-        description: "Antiga sub-raça de tauren vivendo em Nortúndria. Aprenderam a se comunicar com os espíritos dos elementos através da coerção.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Constituição aumenta em 1.",
-          "Fúria Taunka: Uma vez por descanso longo, pode conjurar aumentar/diminuir (opção aumentar) em si mesmo, sem componentes materiais, usando Constituição."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { strength: 2, constitution: 1 }
-      },
-      "Yaungol": {
-        description: "Raça ancestral dos shu’halo e taunka, escravizados pelo Império Mogu. Vivem em Pandaria buscando reestabelecer sua cultura.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Destreza aumenta em 1.",
-          "Marrada: Imediatamente após atingir uma criatura com ataque corpo a corpo, pode usar reação para empurrá-la (salvaguarda de Força CD 8 + proficiência + Força).",
-          "Idiomas: Pandaren e um idioma adicional."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { strength: 2, dexterity: 1 }
-      }
-    }
-  },
-  "Trolls": {
-    description: "A raça dos trolls é uma das mais antigas e espalhada de Azeroth. Seus antigos impérios dominaram enormes porções do mundo.",
-    subraces: {
-      "Amani": {
-        description: "Trolls da floresta, com uma fina camada de musgo na pele. Seu antigo império ruiu após séculos de guerras com humanos e elfos.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Força aumenta em 1.",
-          "Saltadores: Vantagem em testes de Força (Atletismo) que envolvam saltar.",
-          "Treino de Armas Amani: Proficiência com machados de batalha e machadinhas. Considerado proficiente ao arremessar qualquer arma."
-        ],
-        names: {
-          feminine: ["Amira", "Askia", "Batamsi", "Fazerra", "Hexx", "Kulratha", "Mar", "Tabra", "Vanira", "Velratha"],
-          masculine: ["Bhrizz", "Daakara", "Gash", "Jammal", "Kazra", "Krag", "Longo", "Malacrass", "Rogg", "Tresh", "Voone"],
-          surnames: ["Trolls não possuem sobrenomes, mas usam prefixos e sufixos como 'fon (solitário/exilado) e 'jin (líder), e Zul' (grande)."]
-        },
-        attributeBonus: { dexterity: 2, strength: 1 }
-      },
-      "Drakkari": {
-        description: "Trolls do gelo, com traços angulares, olhos vermelhos e tons de pele entre azul e branco. Mais vigorosos que a média da raça.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Constituição aumenta em 1.",
-          "Resistência ao Frio: Você tem resistência a dano gélido."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { dexterity: 2, constitution: 1 }
-      },
-      "Gurubashi": {
-        description: "Trolls das selvas, descendem do Império Gurubashi. Cultura centrada na astúcia, caçada e comunhão com espíritos.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Sabedoria aumenta em 1.",
-          "Equilíbrio Perfeito: Vantagem em testes de Destreza (Acrobacia) para cair de grandes alturas ou equilibrar-se.",
-          "Treino de Armas Gurubashi: Proficiência com todos os arcos, lanças e demais armas de haste."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { dexterity: 2, wisdom: 1 }
-      },
-      "Zandalari": {
-        description: "Remanescentes da primeira nação troll. Escolásticos e apreciadores do conhecimento, buscam preservar a história troll.",
-        traits: [
-          "Aumento no Valor de Atributo: Seu valor de Inteligência aumenta em 1.",
-          "Tradição e Misticismo: Proficiência em Arcanismo ou História.",
-          "Magia Zandalari: Conhece um truque de xamã. Pode conjurar identificar (3º nível) e polimorfia menor (5º nível) uma vez por descanso longo, usando Inteligência."
-        ],
-        names: {
-          feminine: [],
-          masculine: [],
-          surnames: []
-        },
-        attributeBonus: { dexterity: 2, intelligence: 1 }
-      }
-    }
-  },
-  "Renegados": {
-    description: "Mortos-vivos que recuperaram a consciência após a Praga do Flagelo. Seus corpos são deteriorados e comumente secos.",
-    traits: [
-      "Aumento no Valor de Atributo: Dois valores de habilidade, à sua escolha, aumentam em 1.",
-      "Idade: Cessam de envelhecer com a morte.",
-      "Alinhamento: A maioria é neutra e má, tornando-se mais egoísta.",
-      "Tamanho: O mesmo tamanho que um indivíduo vivo da raça original (geralmente Médio).",
-      "Deslocamento: 9 metros.",
-      "Canibalismo: Ao consumir carne de criatura Dragão, Fada, Fera, Gigante ou Humanóide morta recentemente durante descanso curto, pode rolar Dados de Vida duas vezes e escolher o melhor resultado.",
-      "Desmorto: Não precisa comer ou respirar. Imune a doenças não-mágicas. Não volta à raça original com efeitos de reviver. Descansa 4 horas inativo, consciente do ambiente.",
-      "Resistência às Sombras: Resistência ao dano necrótico.",
-      "Vontade dos Renegados: Vantagem em salvaguardas para evitar efeitos de encantamento ou medo.",
-      "Dedicação Desmorta: Proficiência em uma perícia, à sua escolha.",
-      "Idiomas: Órquico, Guturalês e um idioma adicional (geralmente o da raça original ou da Horda).",
-      "Filiação: Horda. NPCs filiados à Horda geralmente têm atitude inicial indiferente (elfos sangrentos podem ser amigáveis). NPCs não habituados a mortos-vivos geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: ["Odiosa"],
-      masculine: ["Absinthus", "Calabouço", "Masmorra", "Mortuus", "Noxxisangue", "Olharvazio", "Pesticórdio", "Putriss", "Vermebafo", "Vermimundo", "Viscerae"],
-      surnames: []
-    },
-    attributeBonus: { choose: 2 }
-  },
-  "Worgens": {
-    description: "Worgens são grandes humanóides lupinos capazes de caminhar sobre as duas patas traseiras. Não são uma raça natural, mas resultado de uma antiga maldição druídica.",
-    traits: [
-      "Aumento no Valor de Atributo: Dois valores de habilidade, à sua escolha, aumentam em 1.",
-      "Idade: Envelhecem como um membro comum de sua raça original.",
-      "Alinhamento: Não possuem inclinação especial a nenhum alinhamento.",
-      "Tamanho: Em forma lupina, aumenta 20% em altura e 30% em peso (ainda Médio).",
-      "Deslocamento: 9 metros.",
-      "Dedicação Gilneiana: Proficiência em uma perícia, à sua escolha.",
-      "Forma Alternativa: Pode assumir a forma de worgen (ação livre). Benefícios: vantagem em testes de Sabedoria (Percepção) relacionados ao olfato; vantagem em testes de Força (Atletismo) para saltar e escalar, e Destreza (Acrobacia) para evitar dano de queda; deslocamento dobrado ao Correr; ataques com garras (1d4 cortante, Acuidade) e mordidas (1d6 perfurante, Força, pode infectar humanos/elfos noturnos com a maldição); conta como criatura grande para capacidade de carga. Retorna à forma natural com uma reação em situação de tranquilidade.",
-      "Vulnerabilidade a Acônito: Vulnerável a dano de armas tratadas com Acônito. Desvantagem em testes de Carisma e Sabedoria na presença da planta.",
-      "Idiomas: Comum e um idioma adicional.",
-      "Filiação: Aliança. NPCs filiados à Aliança geralmente têm atitude inicial amigável ou indiferente (forma monstruosa pode inquietar). Inimigos da Aliança geralmente têm atitude inicial hostil."
-    ],
-    names: {
-      feminine: [],
-      masculine: [],
-      surnames: ["Bocanegra", "Dentessangue", "Eviscerador", "Galgodente", "Grunhegume", "Riso Lupino", "Uivanoite", "Uivassangue", "Uivonegro"]
-    },
-    attributeBonus: { choose: 2 }
-  }
-};
-
-// Dados das classes
-const classesData = {
-  "Bárbaro": {
-    description: "As terras de Azeroth são marcadas pela guerra e selvageria. Uma combinação propícia para o surgimento de povos bárbaros. Sem o refinamento das técnicas de um guerreiro, contando apenas com sua fúria, muitos orcs, trolls e anões do Clã do Martelo Feroz seguem este caminho.",
-    archetypes: {
-      "Trilha do Ancestral Totêmico": "Bárbaros de raças que praticam o Culto aos Antigos geralmente possuem maior afinidade com esta trilha, recebendo dons de Aviana (águia), Goldrinn/Lo’Gosh (lobo) e Ursoc e Ursol (urso).",
-      "Trilha do Berserker": "Uma opção bastante popular entre os orcs e trolls."
-    },
-    proficiencies: ["Armaduras Leves", "Armaduras Médias", "Escudos", "Armas Simples", "Armas Marciais"],
-    savingThrows: ["Força", "Constituição"]
-  },
-  "Bardo": {
-    description: "Em Azeroth, os bardos vêm das carreiras de historiadores, arautos, mensageiros e conselheiros. Sua habilidade diplomática os permite muitas vezes entrar em territórios onde outros membros de sua facção seriam presos ou mortos.",
-    archetypes: {
-      "Colégio da Bravura": "Mais popular entre os bardos da Horda, alegam origem nos bardos do clã órquico do Brado Guerreiro.",
-      "Colégio do Conhecimento": "Mais comum entre os bardos da Aliança, que se veem como descobridores de conhecimentos há muito perdidos."
-    },
-    proficiencies: ["Armaduras Leves", "Armas Simples", "Bestas de Mão", "Espadas Longas", "Rapieiras", "Espadas Curtas", "3 Instrumentos Musicais à escolha"],
-    savingThrows: ["Destreza", "Carisma"]
-  },
-  "Bruxo": {
-    description: "O bruxo é o mais volátil e insaciável entre os usuários de magia arcana. Embora também se ponha a serviço de causas nobres e não seja inerentemente mau, seu desejo de compreender a magia negra e de exercer um controle irrevogável sobre forças malignas fermenta a desconfiança.",
-    archetypes: {
-      "Arquifadas": "Pactos com entidades poderosas do Sonho Esmeralda (ou Pesadelo Esmeralda), como Guardião Ornanos, Lunara, ou Xavius.",
-      "Grandes Antigos": "Pactos com os Deuses Antigos ou seus agentes, como Jungo (Arauto de G’huun), Rainha Azshara, ou Xal’atath (Lâmina do Império Negro).",
-      "Ínferos": "Quase todo bruxo em Azeroth tem como patrono algum demônio da Legião Ardente, como Anetheron (Sucessor de Archimonde), Lorde Jaraxxus, ou Mãe Matrona Malévola."
-    },
-    proficiencies: ["Armaduras Leves", "Armas Simples"],
-    savingThrows: ["Sabedoria", "Carisma"]
-  },
-  "Clérigo": {
-    description: "O clérigo tem uma identidade forte espiritual que usa o poder divino para inspirar e proteger seus aliados, curar os feridos e os desvalidos. Também representa a fúria divina.",
-    archetypes: {
-      "Domínio da Corrupção": "Clérigos com este domínio podem venerar os Deuses Antigos ou a filosofia da Sombra. Não existe um deus da corrupção, mas sim Lordes do Vazio que criaram os Deuses Antigos como agentes.",
-      "Domínio da Proteção": "Presente divino para que os clérigos possam adotar um papel mais ativo como protetores de seu rebanho, auxiliando o fraco a empoderar-se."
-    },
-    proficiencies: ["Armaduras Leves", "Armaduras Médias", "Escudos", "Armas Simples"],
-    savingThrows: ["Sabedoria", "Carisma"]
-  },
-  "Druida": {
-    description: "Guardião da natureza que busca preservar o equilíbrio e proteger a vida, o seguidor do druidismo é muito mais que um mero sacerdote da natureza. Trata-se de uma ordem cultural assentada sobre tradições tão antigas que até mesmo a origem da sua classe é preservada por uma mitologia milenar.",
-    archetypes: {
-      "Círculo do Equilíbrio": "Equilibrando os poderes sagrados da lua, do sol e estrelas, os druidas do Círculo do Equilíbrio canalizam magias movidas pelas forças naturais e arcanas — potencializando sua conjuração ao assumirem a forma de um luniscante."
-    },
-    proficiencies: ["Armaduras Leves", "Armaduras Médias", "Escudos (não metálicos)", "Clavas", "Adagas", "Dardos", "Maças", "Cajados", "Cimitarras", "Foices", "Fundas", "Lanças"],
-    savingThrows: ["Inteligência", "Sabedoria"]
-  },
-  "Feiticeiro": {
-    description: "Feiticeiros podem surgir dentre os membros de quaisquer raças, e a maioria dos não-usuários de magia arcana sequer são capazes de diferenciar feiticeiros de magos.",
-    archetypes: {
-      "Magia Selvagem": "A maioria dos feiticeiros nascidos são da Magia Selvagem, tendo seus poderes vindos das energias místicas da Nascente do Sol.",
-      "Linhagem Dracônica": "Feiticeiros vindos de Linhagem Dracônica — quase sempre descendentes de um dos Dragões Aspectos, que gostam de viver entre os mortais sob a forma humanóide — são mais raros."
-    },
-    proficiencies: ["Adagas", "Dardos", "Fundas", "Cajados", "Bestas Leves"],
-    savingThrows: ["Constituição", "Carisma"]
-  },
-  "Guardião": {
-    description: "O mundo de Azeroth é um lugar selvagem onde a morte pode vir das mais variadas formas. Os guardiões estão dentre as poucas pessoas capazes de sobreviver a estes perigos. Como senhores de seus domínios, ele são capazes de passar despercebidos no terreno natural e eliminar seus inimigos de maneira bastante eficiente.",
-    archetypes: {
-      "Caçador": "Um guardião que convive com os perigos da natureza indomável, aperfeiçoando o manejo de armas letais. Pouco se interessa em conquistar a lealdade das feras, mas observa o comportamento de predadores.",
-      "Senhores das Feras": "Aqueles que, do berço, sentem-se ligados às criaturas selvagens. Atraem-se pelas agruras da natureza, são atiçados por sua exuberância e aprendem na presença do perigo.",
-      "Sobrevivente": "Não teme enfrentar seus inimigos olho no olho, em lutas sanguinolentas. Preferindo o perigo intimista do combate corpo a corpo, ele caça com instintos e engenhosidade."
-    },
-    proficiencies: ["Armaduras Leves", "Armaduras Médias", "Escudos", "Armas Simples", "Armas Marciais"],
-    savingThrows: ["Força", "Destreza"]
-  },
-  "Guerreiro": {
-    description: "Os guerreiros são a epítome do combatente destemido no campo de batalha. Sua pura força marcial inspira coragem nos aliados e desespero nos inimigos. Peritos em todos os tipos de armas de combate corpo a corpo e possuidores de habilidade e força física incríveis.",
-    archetypes: {
-      "Campeão": "Campeões surgem em Azeroth de todos os lugares, histórias de camponeses ou outras vítimas da guerra que pegam em armas e tornam-se heróis são bem conhecidas.",
-      "Mestre de Batalha": "Comuns em sociedades militarizadas mais estruturadas e organizadas. Humanos e anões são particularmente conhecidos por seus exércitos produzirem excelentes estrategistas deste arquétipo.",
-      "Cavaleiro Arcano": "Precisam de um antecedente tanto militar quanto arcano para surgirem. Mais comuns dentre os elfos sangrentos e os habitantes de Dalaran."
-    },
-    proficiencies: ["Todas as Armaduras", "Escudos", "Todas as Armas"],
-    savingThrows: ["Força", "Constituição"]
-  },
-  "Ladino": {
-    description: "Ladinos se cuidam sozinhos, optando por lutas nas quais eles ditam as regras. Eles são as sombras na noite que permanecem invisíveis até o momento exato de matar o oponente com uma facada rápida ou com uma toxina mortal.",
-    archetypes: {
-      "Assassino": "Podem surgir de qualquer lugar, sendo bastante comum haverem sociedades de indivíduos especializados em eliminar alvos estratégicos.",
-      "Ladrão": "A guerra deixa marcas terríveis por onde passa, espalhando fome, miséria e pessoas desesperadas o suficiente para especializarem-se na aquisição de bens dos outros.",
-      "Trapaceiro Arcano": "Ligeiramente mais raros, porém ainda comuns em sociedades que fazem amplo uso da magia, como os magos de Dalaran ou os elfos sangrentos.",
-      "Fora da Lei": "Os combatentes mais inescrupulosos de Azeroth. Agindo à margem da lei, quebram as regras à vontade e usam da enganação para conseguirem o que querem."
-    },
-    proficiencies: ["Armaduras Leves", "Armas Simples", "Bestas de Mão", "Espadas Longas", "Rapieiras", "Espadas Curtas"],
-    savingThrows: ["Destreza", "Inteligência"]
-  },
-  "Mago": {
-    description: "Magos manipulam energias arcanas para estudar os segredos do universo e aprender a controlar o fluxo das energias mais primordiais do mundo.",
-    archetypes: {
-      "Tradições Arcanas": "Os magos de Dalaran categorizaram as artes místicas em oito escolas, ou tradições, diferentes. Estas são exatamente como apresentadas no Player’s Handbook."
-    },
-    proficiencies: ["Adagas", "Dardos", "Fundas", "Cajados", "Bestas Leves"],
-    savingThrows: ["Inteligência", "Sabedoria"]
-  },
-  "Monge": {
-    description: "Há mais de 10 mil anos, bem antes da Guerra dos Antigos, Pandaria era um continente dominado pelos Mogu. Os pandaren desenvolveram técnicas avançadas de combate, melhoria do próprio corpo e a manipulação do chi.",
-    archetypes: {
-      "Caminho da Mão Aberta": "Escola de discípulos de Xuen, o Tigre Branco.",
-      "Caminho dos Quatro Elementos": "Escola dedicada à sabedoria de Yu’lon, a Serpente de Jade.",
-      "Mestres Cervejeiros": "Intoxicam-se em desafios de resistência física e espiritual, como Niuzao aprovaria.",
-      "Tecelões das Névoas": "Tentam restaurar a harmonia e esperança do mundo, como Chi-Ji lhes ensinou.",
-      "Caminho da Sombra": "Tradição desenvolvida pelos trolls Zandalari em conjunto com os Mogu durante a Invasão Zandalari."
-    },
-    proficiencies: ["Armas Simples", "Espadas Curtas"],
-    savingThrows: ["Força", "Destreza"]
-  },
-  "Paladino": {
-    description: "O paladino tem raízes profundas na história de Azeroth como cavaleiro sagrado, protetor do povo e justiceiro. Enquanto os clérigos são a voz dos deuses, o paladino é o punho divino.",
-    archetypes: {
-      "Juramento dos Anciões": "Mais comum entre os tauren (Andarilhos do Sol) e nos Draenei, dada sua afinidade com os servos da Luz.",
-      "Juramento da Devoção": "Mais comum entre paladinos treinados e doutrinados desde cedo a seguirem este caminho, especialmente humanos, elfos sangrentos e anões.",
-      "Juramento da Vingança": "Tendência a ser marcado por grandes tragédias, como os membros da Cruzada Escarlate."
-    },
-    proficiencies: ["Todas as Armaduras", "Escudos", "Todas as Armas"],
-    savingThrows: ["Sabedoria", "Carisma"]
-  },
-  "Caçador de Demônios": {
-    description: "Caçadores de demónios fizeram um pacto para lutar contra as forças do mal, usando o próprio poder demoníaco contra elas. Eles ritualisticamente cegam-se, em troca de obter a capacidade de ver através dos poderes de enganação dos demónios.",
-    archetypes: {
-      "Vingança": "Foco na resistência e absorção de dano demoníaco.",
-      "Devastação": "Foco no dano e na agilidade, utilizando as glaives de guerra."
-    },
-    proficiencies: ["Armaduras Leves", "Armas Simples", "Glaives de Guerra"],
-    savingThrows: ["Destreza", "Inteligência"]
-  },
-  "Cavaleiro da Morte": {
-    description: "Criaturas mortas-vivas que foram ressuscitadas e controladas pelo Lich Rei, mas que eventualmente recuperaram sua vontade. Eles usam magia profana e necromântica.",
-    archetypes: {
-      "Sangue": "Foco na tanking e drenagem de vida.",
-      "Gélido": "Foco no dano de gelo e controlo de multidões.",
-      "Profano": "Foco em doenças, invocações de mortos-vivos e dano de sombra."
-    },
-    proficiencies: ["Todas as Armaduras", "Escudos", "Todas as Armas"],
-    savingThrows: ["Força", "Constituição"]
-  },
-  "Xamã": {
-    description: "Místicos que buscam comungar com os quatro elementos e eventualmente aprenderam a canalizar esse poder primal. Buscam trazer equilíbrio para essas energias voláteis.",
-    archetypes: {
-      "Caminho da Restauração": "Foco na cura e suporte aos aliados.",
-      "Caminho do Aperfeiçoamento": "Foco no combate corpo a corpo aprimorado por energias elementais.",
-      "Caminho Elemental": "Foco no dano mágico elemental (fogo, gelo, raio)."
-    },
-    proficiencies: ["Armaduras Leves", "Armaduras Médias", "Escudos", "Armas Simples", "Armas Marciais"],
-    savingThrows: ["Sabedoria", "Carisma"]
-  }
-};
-
-
-function App() {
-  const [selectedRace, setSelectedRace] = useState('');
-  const [selectedSubrace, setSelectedSubrace] = useState('');
-  const [selectedClass, setSelectedClass] = useState('');
-  const [attributes, setAttributes] = useState({
-    strength: 8,
-    dexterity: 8,
-    constitution: 8,
-    intelligence: 8,
-    wisdom: 8,
-    charisma: 8,
-  });
-  const [pointPool, setPointPool] = useState(27); // Standard point buy pool
-  const [chosenAttributeBonuses, setChosenAttributeBonuses] = useState({}); // Para bónus de 'choose'
-  const [randomName, setRandomName] = useState({ feminine: '', masculine: '', surname: '' });
-
-  // Attributes and their display names for iteration
-  const attributeNames = {
-    strength: 'Força',
-    dexterity: 'Destreza',
-    constitution: 'Constituição',
-    intelligence: 'Inteligência',
-    wisdom: 'Sabedoria',
-    charisma: 'Carisma',
-  };
-
-  // Reset subrace and chosen bonuses when race changes
-  useEffect(() => {
-    setSelectedSubrace('');
-    setChosenAttributeBonuses({});
-  }, [selectedRace]);
-
-  // Function to calculate effective attribute score including racial bonus
-  const getEffectiveAttribute = useCallback((attributeName) => {
-    let base = attributes[attributeName];
-    const racialBonusData = selectedSubrace
-      ? racesData[selectedRace]?.subraces[selectedSubrace]?.attributeBonus
-      : racesData[selectedRace]?.attributeBonus;
-
-    if (racialBonusData) {
-      // Fixed bonuses
-      if (racialBonusData[attributeName]) {
-        base += racialBonusData[attributeName];
-      }
-      // 'Choose' bonuses
-      if (chosenAttributeBonuses[attributeName]) {
-        base += chosenAttributeBonuses[attributeName];
-      }
-    }
-    return base;
-  }, [attributes, selectedRace, selectedSubrace, chosenAttributeBonuses]);
-
-  const getPointCost = (value) => {
-    if (value >= 8 && value <= 13) return 1;
-    if (value >= 14 && value <= 15) return 2;
-    return 0; // Should not happen for valid ranges
-  };
-
-  const handleAttributeChange = (attribute, change) => {
-    const currentValue = attributes[attribute];
-    let cost = 0;
-
-    if (change > 0) { // Increasing attribute
-      if (currentValue < 15) {
-        cost = getPointCost(currentValue); // Cost to go from currentValue to currentValue + 1
-        if (pointPool - cost >= 0) {
-          setAttributes(prev => ({ ...prev, [attribute]: currentValue + 1 }));
-          setPointPool(prev => prev - cost);
-        } else {
-          console.log("Pontos esgotados ou atributo máximo atingido (15).");
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Nicks para Jogos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
         }
-      } else {
-        console.log("Atributo máximo atingido (15).");
-      }
-    } else { // Decreasing attribute
-      if (currentValue > 8) { // Minimum attribute score is 8
-        cost = getPointCost(currentValue - 1); // Cost to go from currentValue - 1 to currentValue
-        setAttributes(prev => ({ ...prev, [attribute]: currentValue - 1 }));
-        setPointPool(prev => prev + cost);
-      } else {
-        console.log("Atributo mínimo atingido (8).");
-      }
-    }
-  };
-
-  const handleRaceChange = (event) => {
-    setSelectedRace(event.target.value);
-  };
-
-  const handleSubraceChange = (event) => {
-    setSelectedSubrace(event.target.value);
-  };
-
-  const handleClassChange = (event) => {
-    setSelectedClass(event.target.value);
-  };
-
-  const handleChosenAttributeBonusChange = (attribute) => {
-    setChosenAttributeBonuses(prev => {
-      const newBonuses = { ...prev };
-      if (newBonuses[attribute]) {
-        delete newBonuses[attribute]; // Remove bonus if already selected
-      } else {
-        // Check if we can add more 'choose' bonuses
-        const currentBonusCount = Object.keys(newBonuses).length;
-        const racialBonusData = selectedSubrace
-          ? racesData[selectedRace]?.subraces[selectedSubrace]?.attributeBonus
-          : racesData[selectedRace]?.attributeBonus;
-
-        if (racialBonusData && racialBonusData.choose && currentBonusCount < racialBonusData.choose) {
-          newBonuses[attribute] = 1; // Add +1 bonus
-        } else {
-          console.log("Número máximo de bónus de atributo de 'escolha' já selecionado.");
+        /* Custom styles for better button appearance */
+        .btn-gradient {
+            background-image: linear-gradient(to right, #8b5cf6 0%, #6366f1 100%); /* Purple to Indigo gradient */
+            transition: all 0.3s ease;
         }
-      }
-      return newBonuses;
-    });
-  };
-
-  const generateRandomName = () => {
-    const currentNames = selectedSubrace
-      ? racesData[selectedRace]?.subraces[selectedSubrace]?.names
-      : racesData[selectedRace]?.names;
-
-    if (currentNames) {
-      const randomFeminine = currentNames.feminine?.length > 0
-        ? currentNames.feminine[Math.floor(Math.random() * currentNames.feminine.length)]
-        : 'N/A';
-      const randomMasculine = currentNames.masculine?.length > 0
-        ? currentNames.masculine[Math.floor(Math.random() * currentNames.masculine.length)]
-        : 'N/A';
-      const randomSurname = currentNames.surnames?.length > 0
-        ? currentNames.surnames[Math.floor(Math.random() * currentNames.surnames.length)]
-        : 'N/A';
-
-      setRandomName({ feminine: randomFeminine, masculine: randomMasculine, surname: randomSurname });
-    } else {
-      setRandomName({ feminine: 'N/A', masculine: 'N/A', surname: 'N/A' });
-    }
-  };
-
-  const exportCharacterSheet = () => {
-    let sheetContent = "FICHA DE PERSONAGEM - WORLD OF WARCRAFT RPG\n\n";
-    sheetContent += "----------------------------------------\n";
-    sheetContent += "INFORMAÇÕES BÁSICAS\n";
-    sheetContent += "----------------------------------------\n";
-
-    if (selectedRace) {
-      sheetContent += `Raça: ${selectedRace}`;
-      if (selectedSubrace) {
-        sheetContent += ` (${selectedSubrace})`;
-      }
-      sheetContent += `\nDescrição da Raça: ${currentSubrace ? currentSubrace.description : currentRace.description}\n`;
-      sheetContent += "Traços Raciais:\n";
-      (currentSubrace ? currentSubrace.traits : currentRace.traits)?.forEach(trait => {
-        sheetContent += `- ${trait}\n`;
-      });
-      sheetContent += "\n";
-
-      sheetContent += "Nomes Sugeridos:\n";
-      sheetContent += `  Femininos: ${randomName.feminine !== '' ? randomName.feminine : ((currentSubrace?.names?.feminine || currentRace?.names?.feminine)?.join(', ') || 'N/A')}\n`;
-      sheetContent += `  Masculinos: ${randomName.masculine !== '' ? randomName.masculine : ((currentSubrace?.names?.masculine || currentRace?.names?.masculine)?.join(', ') || 'N/A')}\n`;
-      sheetContent += `  Sobrenomes: ${randomName.surname !== '' ? randomName.surname : ((currentSubrace?.names?.surnames || currentRace?.names?.surnames)?.join(', ') || 'N/A')}\n`;
-      if (randomName.feminine || randomName.masculine || randomName.surname) {
-          sheetContent += `  Nome Gerado: ${randomName.masculine || randomName.feminine} ${randomName.surname !== 'N/A' ? randomName.surname : ''}\n`;
-      }
-      sheetContent += "\n";
-    }
-
-    if (selectedClass) {
-      sheetContent += `Classe: ${selectedClass}\n`;
-      sheetContent += `Descrição da Classe: ${currentClass.description}\n`;
-      if (currentClass.archetypes) {
-        sheetContent += "Arquétipos/Tradições:\n";
-        Object.entries(currentClass.archetypes).forEach(([archetype, desc]) => {
-          sheetContent += `- ${archetype}: ${desc}\n`;
-        });
-      }
-      if (currentClass.proficiencies) {
-        sheetContent += `Proficiências: ${currentClass.proficiencies.join(', ')}\n`;
-      }
-      if (currentClass.savingThrows) {
-        sheetContent += `Testes de Resistência: ${currentClass.savingThrows.join(', ')}\n`;
-      }
-      sheetContent += "\n";
-    }
-
-    sheetContent += "----------------------------------------\n";
-    sheetContent += "ATRIBUTOS FINAIS\n";
-    sheetContent += "----------------------------------------\n";
-    Object.entries(attributeNames).forEach(([key, name]) => {
-      sheetContent += `${name}: ${getEffectiveAttribute(key)}\n`;
-    });
-    sheetContent += "\n";
-
-    // Create a Blob with the content
-    const blob = new Blob([sheetContent], { type: 'text/plain;charset=utf-8' });
-    // Create a link element
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'ficha_wow_rpg.txt';
-    // Append the link to the body (required for Firefox)
-    document.body.appendChild(a);
-    // Programmatically click the link to trigger the download
-    a.click();
-    // Clean up the URL and remove the link
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
-  };
-
-  const currentRace = racesData[selectedRace];
-  const currentSubrace = selectedSubrace ? currentRace?.subraces[selectedSubrace] : null;
-  const currentClass = classesData[selectedClass];
-
-  const racialBonusData = selectedSubrace
-    ? racesData[selectedRace]?.subraces[selectedSubrace]?.attributeBonus
-    : racesData[selectedRace]?.attributeBonus;
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-gray-100 p-4 sm:p-8 font-inter">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-      </style>
-      <header className="text-center mb-10">
-        <h1 className="text-4xl sm:text-5xl font-bold text-yellow-400 drop-shadow-lg mb-4">
-          <i className="fas fa-scroll mr-3"></i>Montador de Fichas WoW RPG<i className="fas fa-scroll ml-3"></i>
+        .btn-gradient:hover {
+            background-position: right center;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+        }
+    </style>
+</head>
+<body class="selection:bg-purple-300 selection:text-purple-900">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-center border-t-4 border-purple-600">
+        <h1 class="text-4xl font-extrabold text-gray-50 mb-6 tracking-tight">
+            Gerador de Nicks de RPG
         </h1>
-        <p className="text-xl text-gray-300">Baseado no guia "World of Warcraft - Edição Definitiva"</p>
-      </header>
+        <p class="text-gray-300 mb-8 text-lg">
+            Crie apelidos de fantasia únicos para suas aventuras de RPG!
+        </p>
 
-      <main className="max-w-4xl mx-auto bg-gray-800 rounded-xl shadow-2xl p-6 sm:p-8 border border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Seleção de Raça */}
-          <div className="bg-gray-700 p-6 rounded-lg shadow-inner border border-gray-600">
-            <label htmlFor="race-select" className="block text-lg font-semibold text-gray-200 mb-3">
-              Selecione a Raça:
+        <div class="mb-8 flex justify-center space-x-4">
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="radio" name="gender" value="male" class="form-radio h-5 w-5 text-blue-400" checked>
+                <span class="ml-2 text-gray-200 font-medium">Masculino</span>
             </label>
-            <select
-              id="race-select"
-              value={selectedRace}
-              onChange={handleRaceChange}
-              className="w-full p-3 rounded-md bg-gray-600 border border-gray-500 text-gray-100 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition duration-200 ease-in-out"
-            >
-              <option value="">-- Escolha uma Raça --</option>
-              {Object.keys(racesData).map((raceName) => (
-                <option key={raceName} value={raceName}>
-                  {raceName}
-                </option>
-              ))}
-            </select>
-
-            {currentRace?.subraces && (
-              <div className="mt-6">
-                <label htmlFor="subrace-select" className="block text-lg font-semibold text-gray-200 mb-3">
-                  Selecione a Sub-Raça:
-                </label>
-                <select
-                  id="subrace-select"
-                  value={selectedSubrace}
-                  onChange={handleSubraceChange}
-                  className="w-full p-3 rounded-md bg-gray-600 border border-gray-500 text-gray-100 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition duration-200 ease-in-out"
-                >
-                  <option value="">-- Escolha uma Sub-Raça --</option>
-                  {Object.keys(currentRace.subraces).map((subraceName) => (
-                    <option key={subraceName} value={subraceName}>
-                      {subraceName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Seleção de Classe */}
-          <div className="bg-gray-700 p-6 rounded-lg shadow-inner border border-gray-600">
-            <label htmlFor="class-select" className="block text-lg font-semibold text-gray-200 mb-3">
-              Selecione a Classe:
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="radio" name="gender" value="female" class="form-radio h-5 w-5 text-pink-400">
+                <span class="ml-2 text-gray-200 font-medium">Feminino</span>
             </label>
-            <select
-              id="class-select"
-              value={selectedClass}
-              onChange={handleClassChange}
-              className="w-full p-3 rounded-md bg-gray-600 border border-gray-500 text-gray-100 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition duration-200 ease-in-out"
-            >
-              <option value="">-- Escolha uma Classe --</option>
-              {Object.keys(classesData).map((className) => (
-                <option key={className} value={className}>
-                  {className}
-                </option>
-              ))}
-            </select>
-          </div>
+            <label class="inline-flex items-center cursor-pointer">
+                <input type="radio" name="gender" value="random" class="form-radio h-5 w-5 text-purple-400">
+                <span class="ml-2 text-gray-200 font-medium">Aleatório</span>
+            </label>
         </div>
 
-        {/* Secção de Distribuição de Atributos */}
-        <div className="bg-gray-700 p-6 rounded-lg shadow-lg border border-gray-600 mb-8">
-          <h2 className="text-3xl font-bold text-yellow-400 mb-6 text-center">
-            <i className="fas fa-dice-d20 mr-2"></i>Distribuição de Atributos
-          </h2>
-          <div className="text-center text-xl font-semibold text-gray-200 mb-4">
-            Pontos Restantes: <span className="text-yellow-400">{pointPool}</span>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(attributeNames).map(([key, name]) => (
-              <div key={key} className="flex items-center justify-between bg-gray-800 p-3 rounded-md border border-gray-600">
-                <span className="text-lg font-medium text-gray-200">{name}:</span>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => handleAttributeChange(key, -getPointCost(attributes[key] - 1))} // Pass the cost to remove
-                    className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-full transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={attributes[key] <= 8}
-                  >
-                    -
-                  </button>
-                  <span className="text-xl font-bold text-yellow-400 w-8 text-center">{attributes[key]}</span>
-                  <button
-                    onClick={() => handleAttributeChange(key, getPointCost(attributes[key]))} // Pass the cost to add
-                    className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-full transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={pointPool < getPointCost(attributes[key]) || attributes[key] >= 15}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-          {racialBonusData?.choose > 0 && (
-            <div className="mt-6 p-4 bg-gray-800 rounded-lg border border-gray-600">
-              <h4 className="text-xl font-medium text-gray-200 mb-3">
-                Escolha {racialBonusData.choose} Atributos para +1 (Bónus Racial):
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {Object.entries(attributeNames).map(([key, name]) => (
-                  <button
-                    key={`choose-${key}`}
-                    onClick={() => handleChosenAttributeBonusChange(key)}
-                    className={`p-2 rounded-md transition duration-200 ease-in-out
-                      ${chosenAttributeBonuses[key]
-                        ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
-                        : 'bg-gray-600 hover:bg-gray-500 text-gray-200'
-                      }
-                      ${Object.keys(chosenAttributeBonuses).length >= racialBonusData.choose && !chosenAttributeBonuses[key]
-                        ? 'opacity-50 cursor-not-allowed' : ''
-                      }
-                    `}
-                    disabled={Object.keys(chosenAttributeBonuses).length >= racialBonusData.choose && !chosenAttributeBonuses[key]}
-                  >
-                    {name} {chosenAttributeBonuses[key] ? ' (Selecionado)' : ''}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+        <button id="generateButton"
+            class="btn-gradient text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-purple-500 transform hover:scale-105 transition-transform duration-300 ease-in-out">
+            Gerar Nick
+        </button>
+
+        <div id="nicknameDisplay" class="mt-10 p-6 bg-gray-700 rounded-lg border border-gray-600 shadow-inner">
+            <p class="text-xl text-gray-300 font-semibold">Seu novo nick aparecerá aqui!</p>
         </div>
-
-        {/* Mensagem inicial se nada estiver selecionado */}
-        {!selectedRace && !selectedClass && (
-          <div className="bg-blue-700 p-6 rounded-lg shadow-lg text-center text-xl font-semibold text-blue-100 animate-pulse">
-            <i className="fas fa-info-circle mr-2"></i>Por favor, selecione uma Raça ou Classe para começar a montar a sua ficha!
-          </div>
-        )}
-
-        {/* Exibição da Ficha de Personagem */}
-        {(selectedRace || selectedClass) && (
-          <div className="bg-gray-700 p-6 rounded-lg shadow-lg border border-gray-600">
-            <h2 className="text-3xl font-bold text-yellow-400 mb-6 text-center">Sua Ficha de Personagem</h2>
-
-            {selectedRace && (
-              <div className="mb-8">
-                <h3 className="text-2xl font-semibold text-gray-200 mb-4 border-b border-gray-600 pb-2">
-                  <i className="fas fa-users mr-2"></i>Raça: {selectedRace}
-                  {selectedSubrace && ` (${selectedSubrace})`}
-                </h3>
-                <p className="text-gray-300 mb-4">
-                  {currentSubrace ? currentSubrace.description : currentRace.description}
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="text-xl font-medium text-gray-200 mb-2">Traços Raciais:</h4>
-                    <ul className="list-disc list-inside text-gray-300 space-y-1">
-                      {(currentSubrace ? currentSubrace.traits : currentRace.traits)?.map((trait, index) => (
-                        <li key={index}>{trait}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-xl font-medium text-gray-200 mb-2">Nomes Sugeridos:</h4>
-                    <p className="text-gray-300">
-                      <span className="font-semibold">Femininos:</span> {randomName.feminine !== '' ? randomName.feminine : ((currentSubrace?.names?.feminine || currentRace?.names?.feminine)?.join(', ') || 'N/A')}
-                    </p>
-                    <p className="text-gray-300">
-                      <span className="font-semibold">Masculinos:</span> {randomName.masculine !== '' ? randomName.masculine : ((currentSubrace?.names?.masculine || currentRace?.names?.masculine)?.join(', ') || 'N/A')}
-                    </p>
-                    <p className="text-gray-300">
-                      <span className="font-semibold">Sobrenomes:</span> {randomName.surname !== '' ? randomName.surname : ((currentSubrace?.names?.surnames || currentRace?.names?.surnames)?.join(', ') || 'N/A')}
-                    </p>
-                    <button
-                      onClick={generateRandomName}
-                      className="mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 ease-in-out shadow-md"
-                    >
-                      Gerar Nome Aleatório
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Exibição dos Atributos Finais */}
-            <div className="mb-8">
-              <h3 className="text-2xl font-semibold text-gray-200 mb-4 border-b border-gray-600 pb-2">
-                <i className="fas fa-fist-raised mr-2"></i>Atributos Finais
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-gray-300">
-                {Object.entries(attributeNames).map(([key, name]) => (
-                  <div key={key} className="flex justify-between items-center bg-gray-800 p-3 rounded-md border border-gray-600">
-                    <span className="font-semibold">{name}:</span>
-                    <span className="text-yellow-400 font-bold text-xl">{getEffectiveAttribute(key)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {selectedClass && (
-              <div>
-                <h3 className="text-2xl font-semibold text-gray-200 mb-4 border-b border-gray-600 pb-2">
-                  <i className="fas fa-hat-wizard mr-2"></i>Classe: {selectedClass}
-                </h3>
-                <p className="text-gray-300 mb-4">
-                  {currentClass.description}
-                </p>
-                {currentClass.archetypes && (
-                  <div>
-                    <h4 className="text-xl font-medium text-gray-200 mb-2">Arquétipos/Tradições:</h4>
-                    <ul className="list-disc list-inside text-gray-300 space-y-1">
-                      {Object.entries(currentClass.archetypes).map(([archetype, desc]) => (
-                        <li key={archetype}>
-                          <span className="font-semibold">{archetype}:</span> {desc}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {currentClass.proficiencies && (
-                  <div className="mt-4">
-                    <h4 className="text-xl font-medium text-gray-200 mb-2">Proficiências:</h4>
-                    <ul className="list-disc list-inside text-gray-300 space-y-1">
-                      {currentClass.proficiencies.map((prof, index) => (
-                        <li key={index}>{prof}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                {currentClass.savingThrows && (
-                  <div className="mt-4">
-                    <h4 className="text-xl font-medium text-gray-200 mb-2">Testes de Resistência:</h4>
-                    <ul className="list-disc list-inside text-gray-300 space-y-1">
-                      {currentClass.savingThrows.map((st, index) => (
-                        <li key={index}>{st}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Botão de Exportar Ficha */}
-            {(selectedRace || selectedClass) && (
-              <div className="mt-8 text-center">
-                <button
-                  onClick={exportCharacterSheet}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition duration-200 ease-in-out shadow-lg text-xl"
-                >
-                  <i className="fas fa-file-export mr-2"></i>Exportar Ficha
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </main>
-
-      <footer className="text-center text-gray-400 mt-10 text-sm">
-        <p>&copy; 2025 Montador de Fichas WoW RPG. Baseado em "World of Warcraft - Edição Definitiva".</p>
-        <p>Este é um projeto não oficial e não endossado pela Blizzard Entertainment ou Wizards of the Coast.</p>
-      </footer>
     </div>
-  );
-}
 
-export default App;
+    <script>
+        // Define arrays for fantasy names and surnames
+        const maleNames = [
+            "Aric", "Borin", "Caelan", "Darian", "Elara", "Faelan", "Gareth", "Haldor", "Ivar", "Joric",
+            "Kael", "Loric", "Milo", "Niran", "Orrin", "Perrin", "Quinn", "Roric", "Silas", "Thane"
+        ];
+
+        const femaleNames = [
+            "Aerith", "Briar", "Celeste", "Daphne", "Elara", "Fiora", "Gwen", "Lyra", "Isolde", "Jessa",
+            "Kaelen", "Lirael", "Morwen", "Niamh", "Oriana", "Phoebe", "Rowan", "Seraphina", "Thalia", "Willow"
+        ];
+
+        const surnames = [
+            "Stonemarch", "Shadowbrook", "Lightfoot", "Grimfang", "Ironhide", "Swiftblade", "Deepwood", "Silverhand",
+            "Blackwood", "Stormcaller", "Whisperwind", "Fireheart", "Moonwhisper", "Brightspark", "Darkwater",
+            "Stonefist", "Windrider", "Goldleaf", "Frostbeard", "Nightshade"
+        ];
+
+        // Get references to HTML elements
+        const generateButton = document.getElementById('generateButton');
+        const nicknameDisplay = document.getElementById('nicknameDisplay');
+
+        /**
+         * Generates a random nickname based on selected gender.
+         */
+        function generateNickname() {
+            const selectedGender = document.querySelector('input[name="gender"]:checked').value;
+            let firstName;
+
+            // Select a first name based on gender
+            if (selectedGender === 'male') {
+                firstName = maleNames[Math.floor(Math.random() * maleNames.length)];
+            } else if (selectedGender === 'female') {
+                firstName = femaleNames[Math.floor(Math.random() * femaleNames.length)];
+            } else { // Random gender
+                const allNames = [...maleNames, ...femaleNames];
+                firstName = allNames[Math.floor(Math.random() * allNames.length)];
+            }
+
+            // Select a random surname
+            const lastName = surnames[Math.floor(Math.random() * surnames.length)];
+
+            // Combine and display the nickname
+            const nickname = `${firstName} ${lastName}`;
+            nicknameDisplay.innerHTML = `<p class="text-3xl font-bold text-purple-400">${nickname}</p>`; /* Adjusted text color for dark theme */
+        }
+
+        // Add event listener to the button
+        generateButton.addEventListener('click', generateNickname);
+
+        // Generate a nickname on initial load
+        window.onload = generateNickname;
+    </script>
+</body>
+</html>
